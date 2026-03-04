@@ -17,26 +17,28 @@ def Main():
 @app.route("/api/batch/generate")
 def batch_generate():
     try:
-        length = int(request.args.get("length", 16))
-        length = max(6, min(length, 32))
-        count = int(request.args.get("count", 1))
-        count = max(1, min(count, 1000))
+        length  = max(6,  min(int(request.args.get("length", 16)), 32))
+        count   = max(1,  min(int(request.args.get("count",   1)), 1000))
     except ValueError:
-        length, count = 16, 10
+        length, count = 16, 1
+
+    # Build charset from query param, fallback to all chars
+    charset_param = request.args.get("charset", "")
+    pool = list(charset_param) if charset_param else all_characters
+
+    # Always guarantee at least one char from each active set
+    guaranteed = []
+    if any(c in lower   for c in pool): guaranteed.append(secrets.choice([c for c in pool if c in lower]))
+    if any(c in upper   for c in pool): guaranteed.append(secrets.choice([c for c in pool if c in upper]))
+    if any(c in numbers for c in pool): guaranteed.append(secrets.choice([c for c in pool if c in numbers]))
+    if any(c in symbols for c in pool): guaranteed.append(secrets.choice([c for c in pool if c in symbols]))
 
     passwords = []
     for _ in range(count):
-        password_list = [
-            secrets.choice(lower),
-            secrets.choice(upper),
-            secrets.choice(numbers),
-            secrets.choice(symbols),
-            *[secrets.choice(all_characters) for _ in range(length - 4)]
-        ]
-        secrets.SystemRandom().shuffle(password_list)
-        passwords.append("".join(password_list))
+        pwd = guaranteed[:] + [secrets.choice(pool) for _ in range(length - len(guaranteed))]
+        secrets.SystemRandom().shuffle(pwd)
+        passwords.append("".join(pwd))
 
     return {"passwords": passwords}
-
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000)

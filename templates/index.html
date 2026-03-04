@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Password Generator</title>
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32' fill='none'%3E%3Cpath d='M10 14 L10 10 Q10 4 16 4 Q22 4 22 10 L22 14' stroke='%23111' stroke-width='1.75' stroke-linecap='round'/%3E%3Crect x='6' y='14' width='20' height='15' rx='4' stroke='%23111' stroke-width='1.75'/%3E%3Ccircle cx='16' cy='20.5' r='2' fill='%23111'/%3E%3Crect x='15' y='22' width='2' height='3.5' rx='1' fill='%23111'/%3E%3C/svg%3E">
     <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500&family=DM+Mono&display=swap" rel="stylesheet">
 </head>
 <style>
@@ -321,11 +322,175 @@
         color: #ddd;
         margin-top: 28px;
     }
+
+    /* ── Settings modal title ────────────────────────────────────────────── */
+
+    .settings-title {
+        font-size: 11px;
+        font-weight: 500;
+        color: #aaa;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        margin-bottom: 10px;
+    }
+
+    .toggle-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 7px 0;
+        border-bottom: 1px solid #f3f3f3;
+    }
+
+    .toggle-row:last-child { border-bottom: none; }
+
+    .toggle-label {
+        font-size: 13px;
+        color: #333;
+    }
+
+    .toggle-label small {
+        display: block;
+        font-size: 11px;
+        color: #bbb;
+        font-family: 'DM Mono', monospace;
+        margin-top: 1px;
+    }
+
+    .toggle {
+        position: relative;
+        width: 34px;
+        height: 20px;
+        flex-shrink: 0;
+    }
+
+    .toggle input { opacity: 0; width: 0; height: 0; }
+
+    .toggle-track {
+        position: absolute;
+        inset: 0;
+        background: #e8e8e8;
+        border-radius: 20px;
+        cursor: pointer;
+        transition: background 0.2s;
+    }
+
+    .toggle input:checked + .toggle-track { background: #111; }
+
+    .toggle-track::after {
+        content: '';
+        position: absolute;
+        width: 14px;
+        height: 14px;
+        border-radius: 50%;
+        background: #fff;
+        top: 3px;
+        left: 3px;
+        transition: transform 0.2s;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.15);
+    }
+
+    .toggle input:checked + .toggle-track::after { transform: translateX(14px); }
+
+    /* ── Tip ────────────────────────────────────────────────────────────── */
+
+    .tip {
+        text-align: center;
+        font-size: 11.5px;
+        color: #ccc;
+        margin-bottom: 32px;
+    }
+
+    kbd {
+        display: inline-block;
+        font-family: 'DM Mono', monospace;
+        font-size: 10.5px;
+        color: #999;
+        background: #f4f4f4;
+        border: 1px solid #e0e0e0;
+        border-bottom-width: 2px;
+        border-radius: 4px;
+        padding: 1px 6px;
+        line-height: 1.6;
+    }
+
+    /* ── Modal ──────────────────────────────────────────────────────────── */
+
+    .modal-backdrop {
+        position: fixed;
+        inset: 0;
+        background: rgba(0,0,0,0.15);
+        backdrop-filter: blur(3px);
+        -webkit-backdrop-filter: blur(3px);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 200;
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 0.2s ease;
+    }
+
+    .modal-backdrop.open {
+        opacity: 1;
+        pointer-events: auto;
+    }
+
+    .modal {
+        background: #fff;
+        border-radius: 14px;
+        border: 1px solid #f0f0f0;
+        box-shadow: 0 8px 40px rgba(0,0,0,0.10);
+        padding: 20px 22px 22px;
+        width: 268px;
+        opacity: 0;
+        transform: translateY(8px);
+        transition: opacity 0.22s ease, transform 0.22s ease;
+    }
+
+    .modal-backdrop.open .modal {
+        opacity: 1;
+        transform: translateY(0);
+    }
+
+    .modal-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 14px;
+    }
+
+    .modal-title {
+        font-size: 13px;
+        font-weight: 500;
+        color: #111;
+        letter-spacing: 0.01em;
+    }
+
+    .modal-close {
+        width: 24px;
+        height: 24px;
+        border-radius: 6px;
+        border: 1px solid #eee;
+        background: #fff;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 0;
+        transition: background 0.15s;
+    }
+
+    .modal-close:hover { background: #f5f5f5; box-shadow: none; opacity: 1; }
 </style>
 <body>
     <div class="Main">
+
+        <!-- ── Settings ── -->
+
         <h2>Password Generator</h2>
         <p class="subtitle">Create a strong, secure password instantly.</p>
+        <p class="tip">Press <kbd>H</kbd> to open settings</p>
         <div class="Container">
             <div id="PasswordList" class="Container" style="margin-bottom: 4px;"></div>
 
@@ -353,8 +518,41 @@
 
             <button id="Generate">Generate Password</button>
         </div>
-        <footer>Made with ❤️ and Courage</footer>
+        <footer>Made with ❤️ By Mannan</footer>
     </div>
+
+    <!-- ── Settings modal ── -->
+    <div class="modal-backdrop" id="modalBackdrop">
+        <div class="modal" id="settingsModal" role="dialog" aria-modal="true" aria-label="Settings">
+            <div class="modal-header">
+                <span class="modal-title">Settings</span>
+                <button class="modal-close" id="modalClose" aria-label="Close">
+                    <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+                        <line x1="1" y1="1" x2="13" y2="13" stroke="#999" stroke-width="1.8" stroke-linecap="round"/>
+                        <line x1="13" y1="1" x2="1" y2="13" stroke="#999" stroke-width="1.8" stroke-linecap="round"/>
+                    </svg>
+                </button>
+            </div>
+            <div class="settings-title">Character sets</div>
+            <div class="toggle-row">
+                <div class="toggle-label">Uppercase <small>A – Z</small></div>
+                <label class="toggle"><input type="checkbox" id="setUpper" checked><span class="toggle-track"></span></label>
+            </div>
+            <div class="toggle-row">
+                <div class="toggle-label">Lowercase <small>a – z</small></div>
+                <label class="toggle"><input type="checkbox" id="setLower" checked><span class="toggle-track"></span></label>
+            </div>
+            <div class="toggle-row">
+                <div class="toggle-label">Numbers <small>0 – 9</small></div>
+                <label class="toggle"><input type="checkbox" id="setNumbers" checked><span class="toggle-track"></span></label>
+            </div>
+            <div class="toggle-row">
+                <div class="toggle-label">Symbols <small>! @ # $ % ^ &amp; *</small></div>
+                <label class="toggle"><input type="checkbox" id="setSymbols" checked><span class="toggle-track"></span></label>
+            </div>
+        </div>
+    </div>
+
 </body>
 <script>
 const btn           = document.getElementById("Generate");
@@ -367,6 +565,35 @@ const warningBanner = document.getElementById("warningBanner");
 const warningText   = document.getElementById("warningText");
 
 const CHARS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*';
+
+// ── Settings modal ──────────────────────────────────────────────────────────
+
+const modalBackdrop = document.getElementById('modalBackdrop');
+const modalClose    = document.getElementById('modalClose');
+
+function openSettings()  { modalBackdrop.classList.add('open'); }
+function closeSettings() { modalBackdrop.classList.remove('open'); }
+
+modalClose.addEventListener('click', closeSettings);
+modalBackdrop.addEventListener('click', (e) => { if (e.target === modalBackdrop) closeSettings(); });
+
+document.addEventListener('keydown', (e) => {
+    if (e.key === 'h' || e.key === 'H') {
+        // Don't trigger if user is typing in an input
+        if (document.activeElement.tagName === 'INPUT') return;
+        modalBackdrop.classList.contains('open') ? closeSettings() : openSettings();
+    }
+    if (e.key === 'Escape') closeSettings();
+});
+
+function buildCharset() {
+    let chars = '';
+    if (document.getElementById('setUpper').checked)   chars += 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+    if (document.getElementById('setLower').checked)   chars += 'abcdefghijklmnopqrstuvwxyz';
+    if (document.getElementById('setNumbers').checked) chars += '0123456789';
+    if (document.getElementById('setSymbols').checked) chars += '!@#$%^&*';
+    return chars || CHARS; // fallback to full set if all unchecked
+}
 
 // ── Warning system ──────────────────────────────────────────────────────────
 
@@ -432,6 +659,7 @@ updateSlider(countSlider, countDisplay);
 // ── Scramble animation ──────────────────────────────────────────────────────
 
 function scrambleReveal(el, finalText, duration = 500) {
+    const charset = buildCharset();
     const steps = 10;
     const stepMs = duration / steps;
     let frame = 0;
@@ -445,7 +673,7 @@ function scrambleReveal(el, finalText, duration = 500) {
         for (let i = 0; i < finalText.length; i++) {
             display += i < revealedCount
                 ? finalText[i]
-                : CHARS[Math.floor(Math.random() * CHARS.length)];
+                : charset[Math.floor(Math.random() * charset.length)];
         }
         el.textContent = display;
 
@@ -501,8 +729,9 @@ function generate() {
 
     const L = slider.value;
     const C = countSlider.value;
+    const charset = encodeURIComponent(buildCharset());
 
-    fetch(`/api/batch/generate?length=${L}&count=${C}`)
+    fetch(`/api/batch/generate?length=${L}&count=${C}&charset=${charset}`)
         .then(r => { if (!r.ok) throw new Error(r.status); return r.json(); })
         .then(data => {
             passwordList.innerHTML = '';
