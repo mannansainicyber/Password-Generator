@@ -6,10 +6,10 @@ A clean, animated password generator with a minimal frontend and a simple backen
 
 ## Screenshots
 
-![Empty state](images/image1.png)
+![Empty state](Images/image1.png)
 *Before generating — clean default view*
 
-![Passwords generated](images/image2.png)
+![Passwords generated](Images/image2.png)
 *After generating — multiple passwords with copy buttons*
 
 ---
