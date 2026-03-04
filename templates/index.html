@@ -57,7 +57,44 @@
         gap: 12px;
     }
 
-    /* Password card */
+    /* ── Warning banner ─────────────────────────────────────────────────── */
+
+    .warning-banner {
+        display: flex;
+        align-items: flex-start;
+        gap: 9px;
+        background: #fff5f5;
+        border: 1px solid #dc2626;
+        border-radius: 6px;
+        padding: 10px 13px;
+        font-size: 12px;
+        color: #dc2626;
+        line-height: 1.5;
+
+        /* hidden by default */
+        max-height: 0;
+        opacity: 0;
+        overflow: hidden;
+        pointer-events: none;
+        transition: max-height 0.3s ease, opacity 0.25s ease, margin 0.3s ease;
+        margin-bottom: 0;
+    }
+
+    .warning-banner.visible {
+        max-height: 80px;
+        opacity: 1;
+        pointer-events: auto;
+        margin-bottom: 2px;
+    }
+
+    .warning-icon {
+        font-size: 13px;
+        flex-shrink: 0;
+        margin-top: 1px;
+    }
+
+    /* ── Password card ──────────────────────────────────────────────────── */
+
     .generated-pass {
         width: 100%;
         background: #f9f9f9;
@@ -73,7 +110,6 @@
         transition: background 0.2s, border-color 0.2s, transform 0.15s;
         user-select: none;
 
-        /* stagger-in */
         opacity: 0;
         transform: translateY(6px);
         animation: slideIn 0.35s ease forwards;
@@ -83,14 +119,8 @@
         to { opacity: 1; transform: translateY(0); }
     }
 
-    .generated-pass:hover {
-        background: #f3f3f3;
-        border-color: #ddd;
-    }
-
-    .generated-pass:active {
-        transform: scale(0.985);
-    }
+    .generated-pass:hover { background: #f3f3f3; border-color: #ddd; }
+    .generated-pass:active { transform: scale(0.985); }
 
     /* Copy icon */
     .copy-icon {
@@ -104,9 +134,7 @@
         transition: opacity 0.2s;
     }
 
-    .generated-pass:hover .copy-icon {
-        color: #888;
-    }
+    .generated-pass:hover .copy-icon { color: #888; }
 
     /* Copied flash overlay */
     .copy-flash {
@@ -137,9 +165,8 @@
         100% { opacity: 0; }
     }
 
-    /* Scramble chars — just style the text node, no extra el needed */
+    /* ── Sliders ────────────────────────────────────────────────────────── */
 
-    /* Sliders */
     .slider-wrap {
         display: flex;
         flex-direction: column;
@@ -165,7 +192,13 @@
         border-radius: 4px;
         min-width: 36px;
         text-align: center;
-        transition: transform 0.15s;
+        transition: transform 0.15s, background 0.2s, color 0.2s;
+    }
+
+    /* Badge goes red when its slider is in warning territory */
+    .slider-label span:last-child.warn {
+        background: #fff0f0;
+        color: #dc2626;
     }
 
     .slider-label span:last-child.bump {
@@ -198,12 +231,17 @@
         border-radius: 50%;
         background: #111;
         cursor: pointer;
-        transition: transform 0.15s, box-shadow 0.15s;
+        transition: transform 0.15s, box-shadow 0.15s, background 0.2s;
     }
 
     input[type="range"]::-webkit-slider-thumb:hover {
         transform: scale(1.2);
         box-shadow: 0 0 0 4px rgba(0,0,0,0.08);
+    }
+
+    /* Thumb turns red when slider is in warning zone */
+    input[type="range"].warn::-webkit-slider-thumb {
+        background: #dc2626;
     }
 
     input[type="range"]::-moz-range-thumb {
@@ -215,7 +253,8 @@
         cursor: pointer;
     }
 
-    /* Button */
+    /* ── Button ─────────────────────────────────────────────────────────── */
+
     button {
         margin-top: 8px;
         width: 100%;
@@ -251,7 +290,7 @@
         to { transform: scale(4); opacity: 0; }
     }
 
-    /* Spinner dots inside button */
+    /* Spinner dots */
     .dots {
         display: inline-flex;
         gap: 4px;
@@ -290,6 +329,12 @@
         <div class="Container">
             <div id="PasswordList" class="Container" style="margin-bottom: 4px;"></div>
 
+            <!-- Warning banner (hidden until needed) -->
+            <div id="warningBanner" class="warning-banner" role="alert" aria-live="polite">
+                <span class="warning-icon">⚠</span>
+                <span id="warningText"></span>
+            </div>
+
             <div class="slider-wrap">
                 <div class="slider-label">
                     <span>Password length</span>
@@ -318,22 +363,68 @@ const countSlider   = document.getElementById("countSlider");
 const lengthDisplay = document.getElementById("lengthDisplay");
 const countDisplay  = document.getElementById("CountDisplay");
 const passwordList  = document.getElementById("PasswordList");
+const warningBanner = document.getElementById("warningBanner");
+const warningText   = document.getElementById("warningText");
 
 const CHARS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*';
+
+// ── Warning system ──────────────────────────────────────────────────────────
+
+const WARN_LENGTH_THRESHOLD = 8;   // passwords shorter than this are flagged
+const WARN_COUNT_THRESHOLD  = 100; // counts above this are flagged
+
+function getWarning(length, count) {
+    if (length < WARN_LENGTH_THRESHOLD && count > WARN_COUNT_THRESHOLD)
+        return `Short passwords AND high count — these will be weak and slow to generate.`;
+    if (length < WARN_LENGTH_THRESHOLD)
+        return `Passwords under ${WARN_LENGTH_THRESHOLD} characters are easy to crack. Consider 12+.`;
+    if (count > WARN_COUNT_THRESHOLD)
+        return `Generating ${count} passwords may slow down the page.`;
+    return null;
+}
+
+function updateWarning() {
+    const length = parseInt(slider.value);
+    const count  = parseInt(countSlider.value);
+    const msg    = getWarning(length, count);
+
+    if (msg) {
+        warningText.textContent = msg;
+        warningBanner.classList.add('visible');
+    } else {
+        warningBanner.classList.remove('visible');
+    }
+
+    // Badge colour
+    lengthDisplay.classList.toggle('warn', length < WARN_LENGTH_THRESHOLD);
+    countDisplay.classList.toggle('warn',  count  > WARN_COUNT_THRESHOLD);
+
+    // Thumb colour
+    slider.classList.toggle('warn',      length < WARN_LENGTH_THRESHOLD);
+    countSlider.classList.toggle('warn', count  > WARN_COUNT_THRESHOLD);
+}
 
 // ── Slider ──────────────────────────────────────────────────────────────────
 
 function updateSlider(el, display) {
     const pct = ((el.value - el.min) / (el.max - el.min)) * 100;
+    const isWarn = el === slider
+        ? parseInt(el.value) < WARN_LENGTH_THRESHOLD
+        : parseInt(el.value) > WARN_COUNT_THRESHOLD;
+
+    const trackFill  = isWarn ? '#dc2626' : '#111';
+    const trackEmpty = '#e8e8e8';
     display.textContent = el.value;
-    el.style.background = `linear-gradient(to right, #111 ${pct}%, #e8e8e8 ${pct}%)`;
+    el.style.background = `linear-gradient(to right, ${trackFill} ${pct}%, ${trackEmpty} ${pct}%)`;
 
     display.classList.remove('bump');
-    void display.offsetWidth; // reflow to restart animation
+    void display.offsetWidth;
     display.classList.add('bump');
+
+    updateWarning();
 }
 
-slider.addEventListener("input", () => updateSlider(slider, lengthDisplay));
+slider.addEventListener("input",      () => updateSlider(slider, lengthDisplay));
 countSlider.addEventListener("input", () => updateSlider(countSlider, countDisplay));
 updateSlider(slider, lengthDisplay);
 updateSlider(countSlider, countDisplay);
@@ -350,20 +441,17 @@ function scrambleReveal(el, finalText, duration = 500) {
         const progress = frame / steps;
         const revealedCount = Math.floor(progress * finalText.length);
 
-        // Chars already revealed stay fixed; the rest are random
         let display = '';
         for (let i = 0; i < finalText.length; i++) {
-            if (i < revealedCount) {
-                display += finalText[i];
-            } else {
-                display += CHARS[Math.floor(Math.random() * CHARS.length)];
-            }
+            display += i < revealedCount
+                ? finalText[i]
+                : CHARS[Math.floor(Math.random() * CHARS.length)];
         }
         el.textContent = display;
 
         if (frame >= steps) {
             clearInterval(interval);
-            el.textContent = finalText; // guarantee exact final text
+            el.textContent = finalText;
         }
     }, stepMs);
 }
@@ -403,6 +491,11 @@ function setLoading(on) {
         : 'Generate Password';
 }
 
+function showError(msg) {
+    warningText.textContent = msg;
+    warningBanner.classList.add('visible');
+}
+
 function generate() {
     setLoading(true);
 
@@ -414,39 +507,37 @@ function generate() {
         .then(data => {
             passwordList.innerHTML = '';
 
+            // Restore any slider-based warning (clears API errors)
+            updateWarning();
+
             data.passwords.forEach((pw, i) => {
                 const card = document.createElement('div');
                 card.className = 'generated-pass';
                 card.style.animationDelay = `${i * 60}ms`;
 
-                // Text node (scrambled into)
                 const textNode = document.createElement('span');
                 textNode.textContent = pw;
                 card.appendChild(textNode);
 
-                // Copy icon
                 const icon = document.createElement('span');
                 icon.className = 'copy-icon';
                 icon.textContent = '⧉';
                 card.appendChild(icon);
 
-                // Copied flash overlay
                 const flash = document.createElement('div');
                 flash.className = 'copy-flash';
                 flash.textContent = '✓ Copied';
                 card.appendChild(flash);
 
                 passwordList.appendChild(card);
-
-                // Start scramble after card slides in
                 setTimeout(() => scrambleReveal(textNode, pw, 420), i * 60 + 80);
-
                 makeCopyable(card, pw);
             });
         })
         .catch(err => {
             console.error(err);
-            passwordList.innerHTML = "<div class='generated-pass'>⚠ Error generating passwords.</div>";
+            passwordList.innerHTML = '';
+            showError('Could not reach the server. Check your connection and try again.');
         })
         .finally(() => setLoading(false));
 }

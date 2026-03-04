@@ -1,0 +1,10 @@
+# Python
+__pycache__/
+*.pyc
+.env
+todo.md
+# Flask
+instance/
+
+# OS
+.DS_Store

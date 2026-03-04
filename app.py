@@ -1,4 +1,4 @@
-import secrets, time
+import secrets
 from flask import Flask, render_template, request
 
 app = Flask(__name__)
