@@ -1,0 +1,454 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Password Generator</title>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500&family=DM+Mono&display=swap" rel="stylesheet">
+</head>
+<style>
+    * {
+        padding: 0;
+        margin: 0;
+        box-sizing: border-box;
+    }
+
+    body {
+        background: #fff;
+        font-family: 'DM Sans', sans-serif;
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .Main {
+        width: 100%;
+        max-width: 420px;
+        padding: 40px 24px;
+        animation: rise 0.6s ease both;
+    }
+
+    @keyframes rise {
+        from { opacity: 0; transform: translateY(12px); }
+        to   { opacity: 1; transform: translateY(0); }
+    }
+
+    h2 {
+        font-size: 28px;
+        font-weight: 300;
+        text-align: center;
+        color: #111;
+        letter-spacing: -0.02em;
+        margin-bottom: 6px;
+    }
+
+    .subtitle {
+        font-size: 13px;
+        color: #bbb;
+        margin-bottom: 36px;
+        font-weight: 400;
+        text-align: center;
+    }
+
+    .Container {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+    }
+
+    /* Password card */
+    .generated-pass {
+        width: 100%;
+        background: #f9f9f9;
+        border: 1px solid #eee;
+        padding: 12px 40px 12px 14px;
+        border-radius: 6px;
+        font-family: 'DM Mono', monospace;
+        font-size: 14px;
+        color: #111;
+        text-align: center;
+        position: relative;
+        cursor: pointer;
+        transition: background 0.2s, border-color 0.2s, transform 0.15s;
+        user-select: none;
+
+        /* stagger-in */
+        opacity: 0;
+        transform: translateY(6px);
+        animation: slideIn 0.35s ease forwards;
+    }
+
+    @keyframes slideIn {
+        to { opacity: 1; transform: translateY(0); }
+    }
+
+    .generated-pass:hover {
+        background: #f3f3f3;
+        border-color: #ddd;
+    }
+
+    .generated-pass:active {
+        transform: scale(0.985);
+    }
+
+    /* Copy icon */
+    .copy-icon {
+        position: absolute;
+        right: 12px;
+        top: 50%;
+        transform: translateY(-50%);
+        font-size: 13px;
+        color: #bbb;
+        pointer-events: none;
+        transition: opacity 0.2s;
+    }
+
+    .generated-pass:hover .copy-icon {
+        color: #888;
+    }
+
+    /* Copied flash overlay */
+    .copy-flash {
+        position: absolute;
+        inset: 0;
+        background: #111;
+        border-radius: 6px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #fff;
+        font-size: 13px;
+        font-family: 'DM Sans', sans-serif;
+        font-weight: 500;
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 0.15s;
+    }
+
+    .generated-pass.copied .copy-flash {
+        opacity: 1;
+        animation: flashOut 0.9s ease forwards;
+    }
+
+    @keyframes flashOut {
+        0%   { opacity: 1; }
+        60%  { opacity: 1; }
+        100% { opacity: 0; }
+    }
+
+    /* Scramble chars — just style the text node, no extra el needed */
+
+    /* Sliders */
+    .slider-wrap {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        margin-top: 4px;
+    }
+
+    .slider-label {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        font-size: 12px;
+        color: #aaa;
+    }
+
+    .slider-label span:last-child {
+        font-family: 'DM Mono', monospace;
+        font-size: 13px;
+        color: #111;
+        font-weight: 500;
+        background: #f4f4f4;
+        padding: 2px 8px;
+        border-radius: 4px;
+        min-width: 36px;
+        text-align: center;
+        transition: transform 0.15s;
+    }
+
+    .slider-label span:last-child.bump {
+        animation: bump 0.2s ease;
+    }
+
+    @keyframes bump {
+        0%   { transform: scale(1); }
+        50%  { transform: scale(1.25); }
+        100% { transform: scale(1); }
+    }
+
+    input[type="range"] {
+        -webkit-appearance: none;
+        appearance: none;
+        width: 100%;
+        height: 2px;
+        background: #e8e8e8;
+        border-radius: 2px;
+        outline: none;
+        cursor: pointer;
+        transition: background 0.2s;
+    }
+
+    input[type="range"]::-webkit-slider-thumb {
+        -webkit-appearance: none;
+        appearance: none;
+        width: 16px;
+        height: 16px;
+        border-radius: 50%;
+        background: #111;
+        cursor: pointer;
+        transition: transform 0.15s, box-shadow 0.15s;
+    }
+
+    input[type="range"]::-webkit-slider-thumb:hover {
+        transform: scale(1.2);
+        box-shadow: 0 0 0 4px rgba(0,0,0,0.08);
+    }
+
+    input[type="range"]::-moz-range-thumb {
+        width: 16px;
+        height: 16px;
+        border: none;
+        border-radius: 50%;
+        background: #111;
+        cursor: pointer;
+    }
+
+    /* Button */
+    button {
+        margin-top: 8px;
+        width: 100%;
+        padding: 14px;
+        background: #111;
+        border: none;
+        border-radius: 8px;
+        color: #fff;
+        font-family: 'DM Sans', sans-serif;
+        font-size: 14px;
+        font-weight: 500;
+        letter-spacing: 0.01em;
+        cursor: pointer;
+        transition: opacity 0.2s, transform 0.1s, box-shadow 0.2s;
+        position: relative;
+        overflow: hidden;
+    }
+
+    button:hover  { opacity: 0.85; box-shadow: 0 4px 16px rgba(0,0,0,0.18); }
+    button:active { transform: scale(0.985); }
+
+    /* Ripple */
+    .ripple {
+        position: absolute;
+        border-radius: 50%;
+        background: rgba(255,255,255,0.25);
+        transform: scale(0);
+        animation: rippleAnim 0.5s linear;
+        pointer-events: none;
+    }
+
+    @keyframes rippleAnim {
+        to { transform: scale(4); opacity: 0; }
+    }
+
+    /* Spinner dots inside button */
+    .dots {
+        display: inline-flex;
+        gap: 4px;
+        align-items: center;
+        vertical-align: middle;
+    }
+
+    .dots span {
+        width: 4px;
+        height: 4px;
+        border-radius: 50%;
+        background: #fff;
+        display: inline-block;
+        animation: dotBounce 0.6s ease infinite;
+    }
+
+    .dots span:nth-child(2) { animation-delay: 0.1s; }
+    .dots span:nth-child(3) { animation-delay: 0.2s; }
+
+    @keyframes dotBounce {
+        0%, 80%, 100% { transform: translateY(0); opacity: 0.6; }
+        40%            { transform: translateY(-4px); opacity: 1; }
+    }
+
+    footer {
+        text-align: center;
+        font-size: 12px;
+        color: #ddd;
+        margin-top: 28px;
+    }
+</style>
+<body>
+    <div class="Main">
+        <h2>Password Generator</h2>
+        <p class="subtitle">Create a strong, secure password instantly.</p>
+        <div class="Container">
+            <div id="PasswordList" class="Container" style="margin-bottom: 4px;"></div>
+
+            <div class="slider-wrap">
+                <div class="slider-label">
+                    <span>Password length</span>
+                    <span id="lengthDisplay">16</span>
+                </div>
+                <input type="range" id="lengthSlider" min="6" max="32" value="16" step="1">
+            </div>
+
+            <div class="slider-wrap">
+                <div class="slider-label">
+                    <span>Count</span>
+                    <span id="CountDisplay">1</span>
+                </div>
+                <input type="range" id="countSlider" min="1" max="1000" value="1" step="1">
+            </div>
+
+            <button id="Generate">Generate Password</button>
+        </div>
+        <footer>Made with ❤️ and Courage</footer>
+    </div>
+</body>
+<script>
+const btn           = document.getElementById("Generate");
+const slider        = document.getElementById("lengthSlider");
+const countSlider   = document.getElementById("countSlider");
+const lengthDisplay = document.getElementById("lengthDisplay");
+const countDisplay  = document.getElementById("CountDisplay");
+const passwordList  = document.getElementById("PasswordList");
+
+const CHARS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*';
+
+// ── Slider ──────────────────────────────────────────────────────────────────
+
+function updateSlider(el, display) {
+    const pct = ((el.value - el.min) / (el.max - el.min)) * 100;
+    display.textContent = el.value;
+    el.style.background = `linear-gradient(to right, #111 ${pct}%, #e8e8e8 ${pct}%)`;
+
+    display.classList.remove('bump');
+    void display.offsetWidth; // reflow to restart animation
+    display.classList.add('bump');
+}
+
+slider.addEventListener("input", () => updateSlider(slider, lengthDisplay));
+countSlider.addEventListener("input", () => updateSlider(countSlider, countDisplay));
+updateSlider(slider, lengthDisplay);
+updateSlider(countSlider, countDisplay);
+
+// ── Scramble animation ──────────────────────────────────────────────────────
+
+function scrambleReveal(el, finalText, duration = 500) {
+    const steps = 10;
+    const stepMs = duration / steps;
+    let frame = 0;
+
+    const interval = setInterval(() => {
+        frame++;
+        const progress = frame / steps;
+        const revealedCount = Math.floor(progress * finalText.length);
+
+        // Chars already revealed stay fixed; the rest are random
+        let display = '';
+        for (let i = 0; i < finalText.length; i++) {
+            if (i < revealedCount) {
+                display += finalText[i];
+            } else {
+                display += CHARS[Math.floor(Math.random() * CHARS.length)];
+            }
+        }
+        el.textContent = display;
+
+        if (frame >= steps) {
+            clearInterval(interval);
+            el.textContent = finalText; // guarantee exact final text
+        }
+    }, stepMs);
+}
+
+// ── Copy on click ───────────────────────────────────────────────────────────
+
+function makeCopyable(card, pw) {
+    card.addEventListener('click', () => {
+        navigator.clipboard.writeText(pw).then(() => {
+            card.classList.add('copied');
+            setTimeout(() => card.classList.remove('copied'), 900);
+        });
+    });
+}
+
+// ── Button ripple ───────────────────────────────────────────────────────────
+
+btn.addEventListener('click', function (e) {
+    const rect = btn.getBoundingClientRect();
+    const ripple = document.createElement('span');
+    ripple.className = 'ripple';
+    const size = Math.max(rect.width, rect.height);
+    ripple.style.cssText = `width:${size}px;height:${size}px;left:${e.clientX - rect.left - size/2}px;top:${e.clientY - rect.top - size/2}px;`;
+    btn.appendChild(ripple);
+    ripple.addEventListener('animationend', () => ripple.remove());
+
+    generate();
+});
+
+// ── Generate ────────────────────────────────────────────────────────────────
+
+function setLoading(on) {
+    btn.disabled = on;
+    btn.style.opacity = on ? '0.65' : '1';
+    btn.innerHTML = on
+        ? `Generating <span class="dots"><span></span><span></span><span></span></span>`
+        : 'Generate Password';
+}
+
+function generate() {
+    setLoading(true);
+
+    const L = slider.value;
+    const C = countSlider.value;
+
+    fetch(`/api/batch/generate?length=${L}&count=${C}`)
+        .then(r => { if (!r.ok) throw new Error(r.status); return r.json(); })
+        .then(data => {
+            passwordList.innerHTML = '';
+
+            data.passwords.forEach((pw, i) => {
+                const card = document.createElement('div');
+                card.className = 'generated-pass';
+                card.style.animationDelay = `${i * 60}ms`;
+
+                // Text node (scrambled into)
+                const textNode = document.createElement('span');
+                textNode.textContent = pw;
+                card.appendChild(textNode);
+
+                // Copy icon
+                const icon = document.createElement('span');
+                icon.className = 'copy-icon';
+                icon.textContent = '⧉';
+                card.appendChild(icon);
+
+                // Copied flash overlay
+                const flash = document.createElement('div');
+                flash.className = 'copy-flash';
+                flash.textContent = '✓ Copied';
+                card.appendChild(flash);
+
+                passwordList.appendChild(card);
+
+                // Start scramble after card slides in
+                setTimeout(() => scrambleReveal(textNode, pw, 420), i * 60 + 80);
+
+                makeCopyable(card, pw);
+            });
+        })
+        .catch(err => {
+            console.error(err);
+            passwordList.innerHTML = "<div class='generated-pass'>⚠ Error generating passwords.</div>";
+        })
+        .finally(() => setLoading(false));
+}
+</script>
+</html>
